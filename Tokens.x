@@ -9,28 +9,35 @@ $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
 $literal = [\n \t \' \\]
 --$identifier = $alpha [$alpha $digit \_]
-$aritmethic = [\+ \- \* \/ \%]
+$aritmethic = [\+ \- \* \/ \% \-$digit]
 $relational = [\< \= \>]
--- $boolean = [ \/\ \\\/ ]
+$boolean = [ \/\ \\\/ ]
 $separator = [\( \) \[ \] \{ \} \, \. \:]
 $instruction = [\;]
 $arrays = [\$ \#]
-$symbol = [$aritmethic $relational $separator $instruction $arrays]
--- $invalid = [$digit$alpha ^$symbol]
+$symbol = [$aritmethic $relational $boolean $separator $instruction $arrays]
+$invalid = [$digit $alpha $symbol $literal]
 
 tokens :-
 
   $white+                       ;
   $keyword                      { tok (\p s -> Var p s) }
   $digit+                       { tok (\p s -> Int p (read s)) }
-  [ [\<][\=] [\>][\=] [\/][\=]
-    [\+][\+] [\-][\-] [\:][\:]
-    [\\][\/] [\/][\\] [\<][\-]
-    [\-][\>] ]         { tok (\p s -> Var p (read s)) } -- sym dobles.
+  -- \- $digit+                    { tok (\p s -> Var p (head s)) }
+  \-\>                          { tok (\p s -> Var p s) } -- TkHacer
+  \<\-                          { tok (\p s -> Var p s) } -- TkAsignacion
+  \<\=                          { tok (\p s -> Var p s) } -- TkMenorIgual
+  \>\=                          { tok (\p s -> Var p s) } -- TkMayorIgual
+  \/\=                          { tok (\p s -> Var p s) } -- TkDesigual
+  \+\+                          { tok (\p s -> Var p s) } -- TkSiguienteCar
+  \-\-                          { tok (\p s -> Var p s) } -- TkAnteriorCar
+  \:\:                          { tok (\p s -> Var p s) } -- TkConcatenacion
+  \\\/                          { tok (\p s -> Var p s) } -- TkDisyuncion
+  \/\\                          { tok (\p s -> Var p s) } -- TkConjuncion
   $symbol                       { tok (\p s -> Sym p (head s)) }
-  \'.\'                         { tok (\p s -> Var p (read s)) } -- char
+  \'.\'                         { tok (\p s -> Var p (read (shows s ""))) } -- char
   $alpha [$alpha $digit \_]*    { tok (\p s -> Var p s) }
-  [$digit$alpha ~$symbol]       { tok (\p s -> Var p (read s)) }
+  ~$invalid                     { tok (\p s -> Sym p (head s)) }
 
 {
 -- Each right-hand side has type :: AlexPosn -> String -> Token
@@ -44,7 +51,7 @@ data Token =
     Var AlexPosn String       |
     Int AlexPosn Int          |
     Invalid AlexPosn Char
-    deriving (Eq,Show)  
+    deriving (Eq,Show)
 
 token_posn (Sym p _) = p
 token_posn (Var p _) = p
